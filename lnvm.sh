@@ -14,9 +14,21 @@ _lnvm_load_global() {
 
 export NODE_GLOBAL_VERSION=$(_lnvm_load_global)
 
+# Normaliza versão (adiciona 'v' se não tiver)
+_lnvm_normalize_version() {
+  local version=$1
+  # Remove espaços em branco
+  version=$(echo "$version" | tr -d '[:space:]')
+  # Adiciona 'v' se não começar com 'v'
+  if [[ ! "$version" =~ ^v ]]; then
+    version="v${version}"
+  fi
+  echo "$version"
+}
+
 # Função para ativar uma versão
 use_node_version() {
-  local version=$1
+  local version=$(_lnvm_normalize_version "$1")
   local silent=$2  # se passar "silent", não mostra mensagens
   local node_path="$NODE_VERSIONS_DIR/node$version/bin"
 
@@ -45,7 +57,13 @@ detect_node_version() {
   elif [ -f "$dir/.nvmrc" ]; then
     version=$(cat "$dir/.nvmrc")
   elif [ -f "$dir/package.json" ]; then
-    version=$(grep -o '"node": *"[^"]*"' "$dir/package.json" | grep -o 'v[0-9][^"]*')
+    # Busca com ou sem 'v' no início
+    version=$(grep -o '"node": *"[^"]*"' "$dir/package.json" | grep -oE '(v)?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+  fi
+
+  # Normaliza a versão (adiciona 'v' se necessário)
+  if [ -n "$version" ]; then
+    version=$(_lnvm_normalize_version "$version")
   fi
 
   echo "$version"
@@ -79,7 +97,7 @@ _lnvm_install() {
   
   if [ -z "$version" ]; then
     echo "Uso: lnvm install <version>"
-    echo "Exemplo: lnvm install v20.11.0"
+    echo "Exemplo: lnvm install v20.11.0 ou lnvm install 20.11.0"
     echo ""
     echo "Versões LTS recomendadas:"
     echo "  - v20.11.0 (Iron - LTS até abril 2026)"
@@ -88,9 +106,7 @@ _lnvm_install() {
   fi
   
   # Normaliza a versão (adiciona 'v' se não tiver)
-  if [[ ! "$version" =~ ^v ]]; then
-    version="v${version}"
-  fi
+  version=$(_lnvm_normalize_version "$version")
   
   local target_dir="$NODE_VERSIONS_DIR/node$version"
   
@@ -152,7 +168,7 @@ lnvm() {
     use)
       if [ -z "$2" ]; then
         echo "Uso: lnvm use <version>"
-        echo "Exemplo: lnvm use v18.17.0"
+        echo "Exemplo: lnvm use v18.17.0 ou lnvm use 18.17.0"
         return 1
       fi
       use_node_version "$2"
@@ -162,16 +178,17 @@ lnvm() {
       if [ -z "$2" ]; then
         echo "Versão global atual: $NODE_GLOBAL_VERSION"
         echo "Uso: lnvm global <version>"
-        echo "Exemplo: lnvm global v20.11.0"
+        echo "Exemplo: lnvm global v20.11.0 ou lnvm global 20.11.0"
         return 1
       fi
-      # Salva no arquivo
-      echo "$2" > "$LNVM_GLOBAL_FILE"
-      export NODE_GLOBAL_VERSION="$2"
-      echo "[lnvm] Versão global definida: $2"
+      # Normaliza e salva no arquivo
+      local normalized_version=$(_lnvm_normalize_version "$2")
+      echo "$normalized_version" > "$LNVM_GLOBAL_FILE"
+      export NODE_GLOBAL_VERSION="$normalized_version"
+      echo "[lnvm] Versão global definida: $normalized_version"
       # Aplica imediatamente se não estiver em um projeto
       if [ -z "$(detect_node_version)" ]; then
-        use_node_version "$2"
+        use_node_version "$normalized_version"
       fi
       ;;
     
@@ -205,8 +222,12 @@ lnvm() {
       echo "  lnvm list               - Lista versões instaladas"
       echo "  lnvm current            - Mostra versão atual"
       echo ""
+      echo "Exemplos:"
+      echo "  lnvm install 20.11.0    (ou v20.11.0)"
+      echo "  lnvm use 18.17.0        (ou v18.17.0)"
+      echo ""
       echo "Versões são detectadas automaticamente de:"
-      echo "  .node-version, .nvmrc, package.json"
+      echo "  .node-version, .nvmrc, package.json (com ou sem 'v')"
       ;;
   esac
 }

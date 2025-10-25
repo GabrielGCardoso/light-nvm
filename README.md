@@ -88,12 +88,18 @@ lnvm global v20.11.0
 ```bash
 # Instalar uma versão (baixa automaticamente)
 lnvm install v20.11.0
+# ou sem o 'v':
+lnvm install 20.11.0
 
 # Definir versão global padrão
 lnvm global v20.11.0
+# ou:
+lnvm global 20.11.0
 
 # Usar versão específica neste terminal
 lnvm use v18.17.0
+# ou:
+lnvm use 18.17.0
 
 # Listar versões instaladas
 lnvm list
@@ -105,18 +111,24 @@ lnvm current
 lnvm
 ```
 
+**💡 Dica:** Você pode especificar versões com ou sem o `v` no início - o lnvm normaliza automaticamente!
+
 ### Auto-detecção de versão por projeto
 
-Crie um desses arquivos no seu projeto:
+Crie um desses arquivos no seu projeto (com ou sem `v`):
 
 **`.nvmrc`** (compatível com nvm):
 ```
 v18.17.0
+# ou simplesmente:
+18.17.0
 ```
 
 **`.node-version`**:
 ```
 v20.11.0
+# ou:
+20.11.0
 ```
 
 **`package.json`**:
@@ -124,6 +136,7 @@ v20.11.0
 {
   "engines": {
     "node": "v18.17.0"
+    // ou "node": "18.17.0"
   }
 }
 ```
